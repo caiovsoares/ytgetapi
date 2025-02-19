@@ -205,8 +205,13 @@ app.get('/download', async (req, res) => {
     const videoStream = ytdl(url, { format: videoFormat });
     const audioStream = ytdl(url, { format: audioFormat });
 
-    // Nome do arquivo de saída
-    const outputPath = path.join(__dirname, 'output', 'video.mp4');
+    // Nome único para o arquivo de saída para evitar conflitos entre requisições
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    const outputPath = path.join(
+      __dirname,
+      'output',
+      `video_${uniqueSuffix}.mp4`
+    );
 
     // Criar o arquivo final combinando o vídeo e o áudio
     const filePath = await combineVideoAndAudio(
