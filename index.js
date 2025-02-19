@@ -102,8 +102,17 @@ function saveStreamToFile(stream, filePath) {
 // Função para criar o vídeo final combinando vídeo e áudio
 async function combineVideoAndAudio(videoStream, audioStream, outputPath) {
   try {
-    const tempVideoPath = path.join(__dirname, 'output', 'temp_video.mp4');
-    const tempAudioPath = path.join(__dirname, 'output', 'temp_audio.mp4');
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
+    const tempVideoPath = path.join(
+      __dirname,
+      'output',
+      `temp_video_${uniqueSuffix}.mp4`
+    );
+    const tempAudioPath = path.join(
+      __dirname,
+      'output',
+      `temp_audio_${uniqueSuffix}.mp4`
+    );
 
     await saveStreamToFile(videoStream, tempVideoPath);
     await saveStreamToFile(audioStream, tempAudioPath);
