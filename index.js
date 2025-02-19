@@ -5,6 +5,8 @@ const app = express();
 const port = 3000;
 const path = require('path');
 const fs = require('fs');
+const http = require('http');
+const https = require('https');
 
 // Adicione isso no início do arquivo, após as importações
 if (!fs.existsSync(path.join(__dirname, 'output'))) {
@@ -161,13 +163,31 @@ app.get('/download', async (req, res) => {
 
     // Se o vídeo já tem áudio, baixa diretamente
     if (!needsAudioMerge) {
-      const videoStream = ytdl(url, { format: videoFormat });
-      const outputPath = path.join(__dirname, 'output', 'video.mp4');
-
       // Configura os cabeçalhos para o download do arquivo
       res.header('Content-Disposition', 'attachment; filename="video.mp4"');
       res.header('Content-Type', 'video/mp4');
 
+      let contentLength = videoFormat.contentLength;
+      if (!contentLength && videoFormat.url) {
+        // Se não houver contentLength, realiza uma requisição HEAD para obtê-lo
+        const reqModule = videoFormat.url.startsWith('https') ? https : http;
+        try {
+          contentLength = await new Promise((resolve, reject) => {
+            reqModule
+              .get(videoFormat.url, { method: 'HEAD' }, (headRes) => {
+                resolve(headRes.headers['content-length']);
+              })
+              .on('error', reject);
+          });
+        } catch (err) {
+          console.error('Erro ao obter Content-Length:', err);
+        }
+      }
+      if (contentLength) {
+        res.header('Content-Length', contentLength);
+      }
+
+      const videoStream = ytdl(url, { format: videoFormat });
       videoStream.pipe(res);
       return;
     }
@@ -189,6 +209,10 @@ app.get('/download', async (req, res) => {
     // Configura os cabeçalhos para o download do arquivo
     res.header('Content-Disposition', 'attachment; filename="video.mp4"');
     res.header('Content-Type', 'video/mp4');
+
+    // Adicionar o cabeçalho Content-Length para o arquivo combinado
+    const stats = fs.statSync(filePath);
+    res.header('Content-Length', stats.size);
 
     // Enviar o arquivo combinado como resposta
     const fileStream = fs.createReadStream(filePath);
